@@ -160,11 +160,6 @@ void playGame(int field[][GRID_NUM]){
 		if(chessLocPtr != NULL && checkValidation(validated_locs, *chessLocPtr) == false)
 			continue;
 		
-		//連續兩回合都無法獲得合法座標，或者已經沒有可以下子的位置，遊戲結束 
-		if(endPoint == 2 || (play1Score + play2Score) == GRID_NUM * GRID_NUM){ //判斷是否符合遊戲結束條件， 
-			showGameWinMsg(); //顯示遊戲結束訊息，並等待玩家輸入選項
-			return;
-		}
 
 		cleanValidatedLocs(validated_locs); //清理合法位置標記 
 		if(chessLocPtr != NULL)
@@ -190,6 +185,14 @@ void playGame(int field[][GRID_NUM]){
 		else{
 			endPoint = 0;	
 		}
+		
+		
+		//連續兩回合都無法獲得合法座標，或者已經沒有可以下子的位置，遊戲結束 
+		if(endPoint == 2 || (play1Score + play2Score) == GRID_NUM * GRID_NUM){ //判斷是否符合遊戲結束條件， 
+			showGameWinMsg(); //顯示遊戲結束訊息，並等待玩家輸入選項
+			return;
+		}
+		
 		//繪製合法座標標記 
 		drawValidatedLocs(validated_locs);
 		printf("end point: %d\n", endPoint);
@@ -621,7 +624,18 @@ void showInfo(){
 	outtextxy(0, TOP_MARGINE + (GRID_NUM) * SCREEN_HEIGHT / GRID_NUM + 40, optMsg3);
 }
 
-//電腦玩家，請在此function實作AI功能 
+//電腦玩家，請在此function實作AI功能 (stupid ai)
 Location* PLAYONE_AI(int field[][GRID_NUM],  Location *focusPtr, NodePointer validated_locs){
+	Location tmp= {0, 0}; int maxx = 0;//定義及初始化最優解	
+	for (int i = 0; i < GRID_NUM; ++i)
+		for (int j = 0; j < GRID_NUM; ++j)
+		{
+			tmp = {i, j};
+			if (reverse(field, tmp, true) >= maxx && checkValidation(validated_locs, tmp) == true )
+			{
+				maxx = reverse(field, tmp, true);
+				focusPtr->row = i ;focusPtr->col = j ;
+			}
+		}
 	return focusPtr;
 }
