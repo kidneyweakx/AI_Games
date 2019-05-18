@@ -109,6 +109,10 @@ int stepCount = 0; //步數計數器
 int const scorePerResource = 1; //每一份資源可得分數 
 bool IFPlayAI = false; //是否開啟AI模式 
 
+//AI尋找該走的道路 
+PathPointer playerFindPath(int field[][GRID_SIDE], Location startLoc, Location goalLoc, NodePointer zombie);
+Direction safeDirect4Player(int field[][GRID_SIDE], NodePointer player);
+
 // 主程式      
 int main(){  	
 	openWindow();
@@ -825,8 +829,70 @@ Location nextStepLoc(NodePointer node, Direction direct){
 //實作生存者AI，請在此function實作出AI功能 
 Direction playerAI(int field[][GRID_SIDE], NodePointer player, NodePointer zombie){
 	Direction playerDirect = player -> direct;
+	Location start = {player -> row, player -> col};
+	Location goal = findNearestResource(field, player);
 
+
+	PathPointer path = playerFindPath(field, start, goal, zombie);
+	if(path){
+		playerDirect = getDirectionByPath(player, path);
+	}	
+	else
+		playerDirect = safeDirect4Player(field, player);
 	
 	return playerDirect;
+}
+
+//AI如果無法找到有效路徑，暫時決定一個安全方向 
+Direction safeDirect4Player(int field[][GRID_SIDE], NodePointer player){
+	int i;
+	int dirSize = 4;
+	Location loc;
+	
+	loc = nextStepLoc(player, UP);
+	if(!IsAtWall(field, loc.row, loc.col))
+		return UP;
+	loc = nextStepLoc(player, DOWN);
+	if(!IsAtWall(field, loc.row, loc.col))
+		return DOWN;
+	loc = nextStepLoc(player, RIGHT);
+	if(!IsAtWall(field, loc.row, loc.col))
+		return RIGHT;
+	loc = nextStepLoc(player, LEFT);
+	if(!IsAtWall(field, loc.row, loc.col))
+		return LEFT;						
+	return player->direct;
+}
+
+//AI尋找兩點之間可到達的路徑，不需考慮會不會撞到其他喪屍或者生存者
+PathPointer playerFindPath(int field[][GRID_SIDE], Location startLoc, Location goalLoc, NodePointer zombie){
+	resetPathQueue();
+	int steps = calcSteps(startLoc, goalLoc); 
+	PathNode start = {0, steps, startLoc, NULL, NULL};
+	addPathQueue(start);
+	while(!isPathQueueEmpty()){
+		sortPathQueue();
+		PathPointer current = popPathQueue();
+		if(current->loc.row == goalLoc.row && current->loc.col == goalLoc.col)
+			return buildPath(current);
+		int dirSize = 4;
+		int iDir[] = {1, 0, -1, 0};
+		int jDir[] = {0, 1, 0, -1};
+		int i,j;
+		int count=0;
+		for(i=0, j=0; i<dirSize; i++, j++){
+		    Location target = {zombie -> row + count, zombie -> col + count};  count += 2;
+			Location neighborLoc = {current->loc.row + iDir[i], current->loc.col + jDir[j]};
+			if(!visited(neighborLoc) && !visited(target) && !IsAtWall(field, neighborLoc.row, neighborLoc.col) && !IsAtZombie(zombie, neighborLoc.row+count, neighborLoc.col+count)){
+				int steps = calcSteps(neighborLoc, goalLoc);
+				int cost = 	current->cost + 1;
+				PathNode neighbor = {cost, steps, neighborLoc, current, NULL};
+				if(!IsInPathQueue(neighbor)){
+					addPathQueue(neighbor);
+				}				
+			}
+		}
+	}
+	return NULL;
 }
 
